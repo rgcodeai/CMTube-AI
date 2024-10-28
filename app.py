@@ -63,22 +63,36 @@ def display_summary():
             st.write(summary)
 
 def analyze_video_content(url):
-    st.session_state.analysis_complete = False
-    st.session_state.summaries = []
-    new_video_id = get_video_id(url)
-    if new_video_id != st.session_state.video_id:
-        st.session_state.video_id = new_video_id
-        st.session_state.chat_history = []
-    
-    if st.session_state.video_id:
-        st.session_state.title, st.session_state.transcript_chunks, st.session_state.language_code, st.session_state.video_duration = analyze_video(url)
-        if st.session_state.title and st.session_state.transcript_chunks:
-            st.session_state.analysis_complete = True
-            display_video_analysis()
-        else:
-            st.error("No se pudo obtener la información del video o la transcripción. Verifique la URL y asegúrese de que el video tenga subtítulos disponibles.")
-    else:
-        st.error("No se pudo obtener el ID del video. Verifique la URL.")
+    try:
+        st.session_state.analysis_complete = False
+        st.session_state.summaries = []
+        new_video_id = get_video_id(url)
+        
+        if not new_video_id:
+            st.error("URL de YouTube inválida. Por favor, verifica la URL.")
+            return
+            
+        if new_video_id != st.session_state.video_id:
+            st.session_state.video_id = new_video_id
+            st.session_state.chat_history = []
+        
+        with st.spinner("Analizando video..."):
+            result = analyze_video(url)
+            if result[0] is None:
+                st.error("No se pudo obtener la información del video. Verifica la URL.")
+                return
+                
+            st.session_state.title, st.session_state.transcript_chunks, st.session_state.language_code, st.session_state.video_duration = result
+            
+            if st.session_state.title and st.session_state.transcript_chunks:
+                st.session_state.analysis_complete = True
+                display_video_analysis()
+            else:
+                st.error("No se pudo obtener la transcripción. Verifica que el video tenga subtítulos disponibles.")
+                
+    except Exception as e:
+        st.error(f"Ocurrió un error al analizar el video: {str(e)}")
+        st.session_state.analysis_complete = False
 
 def display_video_analysis():
     st.title(st.session_state.title)
