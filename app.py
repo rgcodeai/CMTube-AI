@@ -23,7 +23,7 @@ def initialize_session_state():
 def setup_sidebar():
     with st.sidebar:
         st.title("💬 Resuma y converse con videos de YouTube")
-        st.caption("🚀 Impulsado por Groq - llama-3.1-70b-versatile")
+        st.caption("🚀 Impulsado por Groq")
         url = st.text_input("Ingrese la URL del video de YouTube:", key="url_input")
         analyze_button = st.button("Analizar Video", type="primary")
         
@@ -47,8 +47,8 @@ def setup_sidebar():
     return url, analyze_button
 
 def seconds_to_minutes(seconds):
-    minutes, remaining_seconds = divmod(seconds, 60)
-    return f"{minutes}:{remaining_seconds:02d}"
+    minutes, remaining_seconds = divmod(int(seconds), 60)
+    return f"{minutes}:{int(remaining_seconds):02d}"
 
 def display_summary():
     st.title(st.session_state.title)
@@ -56,9 +56,8 @@ def display_summary():
     st.subheader("Análisis Detallado por Segmentos")
     
     for i, summary in enumerate(st.session_state.summaries):
-        segment_duration = st.session_state.video_duration / len(st.session_state.transcript_chunks)
-        start_time = int(i * segment_duration)
-        end_time = int((i + 1) * segment_duration)
+        start_time = st.session_state.transcript_chunks[i]['start_time']
+        end_time = st.session_state.transcript_chunks[i]['end_time']
         with st.expander(f"Análisis del video del minuto {seconds_to_minutes(start_time)} al minuto {seconds_to_minutes(end_time)}", expanded=True):
             st.write(summary)
 
@@ -90,7 +89,7 @@ def display_video_analysis():
     
     for i, chunk in enumerate(st.session_state.transcript_chunks):
         with st.spinner(f"Analizando sección {i+1} de {len(st.session_state.transcript_chunks)}..."):
-            summary = generate_segment_summary(chunk, st.session_state.language_code, i+1)
+            summary = generate_segment_summary(chunk['text'], st.session_state.language_code, i+1)
             st.session_state.summaries.append(summary)
             
             update_segments_display(segments_container)
@@ -104,9 +103,8 @@ def display_video_analysis():
 def update_segments_display(container):
     with container.container():
         for j, summary in enumerate(st.session_state.summaries):
-            segment_duration = st.session_state.video_duration / len(st.session_state.transcript_chunks)
-            start_time = int(j * segment_duration)
-            end_time = int((j + 1) * segment_duration)
+            start_time = st.session_state.transcript_chunks[j]['start_time']
+            end_time = st.session_state.transcript_chunks[j]['end_time']
             with st.expander(f"Análisis del video del minuto {seconds_to_minutes(start_time)} al minuto {seconds_to_minutes(end_time)}", expanded=True):
                 st.write(summary)
 
@@ -128,7 +126,7 @@ def display_chatbot():
         st.session_state.chat_history.append({"role": "user", "content": prompt})
         st.chat_message("user").write(prompt)
         with st.spinner("Generando respuesta..."):
-            full_transcript = "\n\n".join(st.session_state.transcript_chunks)
+            full_transcript = "\n\n".join([chunk['text'] for chunk in st.session_state.transcript_chunks])
             response = get_ai_response(prompt, full_transcript, st.session_state.chat_history)
         st.session_state.chat_history.append({"role": "assistant", "content": response})
         st.chat_message("assistant").write(response)
