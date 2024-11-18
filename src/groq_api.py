@@ -40,7 +40,7 @@ def get_ai_response(prompt, context, chat_history):
         
         chat_completion = client.chat.completions.create(
             messages=messages,
-            model="llama-3.1-70b-versatile",
+            model="llama-3.1-8b-instant",
             temperature=0.7,
         )
         return chat_completion.choices[0].message.content
