@@ -13,20 +13,42 @@ def analyze_video(url):
         duration = yt.length  # Get video duration in seconds
     except Exception as e:
         print(f"Error al obtener información del video: {str(e)}")
-        title = f"Video {video_id}"  # Título genérico usando el ID del video
-        duration = 0  # Duración desconocida
-
+        title = f"Video {video_id}"  # Generic title using the video ID
+        duration = 0 
+ # 
     transcript, language_code = get_transcript(video_id)
 
     if not transcript:
         return title, None, None, duration
 
-    # Join transcript text
-    full_transcript = " ".join([entry['text'] for entry in transcript])
-    
-    # Split transcript into chunks of approximately 2000 words
-    words = full_transcript.split()
-    chunk_size = 2000
-    chunks = [" ".join(words[i:i+chunk_size]) for i in range(0, len(words), chunk_size)]
+    # Process transcript into chunks with start and end times
+    chunks = []
+    current_chunk = ""
+    chunk_start_time = transcript[0]['start']
+    word_count = 0
+
+    for entry in transcript:
+        words = entry['text'].split()
+        word_count += len(words)
+        
+        if word_count > 3000:
+            chunks.append({
+                'text': current_chunk.strip(),
+                'start_time': chunk_start_time,
+                'end_time': entry['start']
+            })
+            current_chunk = ""
+            chunk_start_time = entry['start']
+            word_count = len(words)
+
+        current_chunk += " " + entry['text']
+
+    # Add the last chunk
+    if current_chunk:
+        chunks.append({
+            'text': current_chunk.strip(),
+            'start_time': chunk_start_time,
+            'end_time': transcript[-1]['start'] + transcript[-1]['duration']
+        })
 
     return title, chunks, language_code, duration
